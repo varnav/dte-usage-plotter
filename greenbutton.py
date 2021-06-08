@@ -48,7 +48,7 @@ def parse_reading(interval_reading_node):
     start = datetime.datetime.utcfromtimestamp(int(interval_reading_node.find('reading:timePeriod/reading:start', ns).text))
     duration = datetime.timedelta(seconds=int(interval_reading_node.find('reading:timePeriod/reading:duration', ns).text))
     value = int(interval_reading_node.find('reading:value', ns).text)
-    return (start, duration, value)
+    return start, duration, value
 
 
 def filter_by_time_of_day(df, starttime, stoptime):

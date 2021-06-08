@@ -13,9 +13,11 @@ python dtefeed.py https://usagedata.dteenergy.com/link/5E7B7FCB-D720-F3BB-BCC1-4
 
 import datetime
 import click
-import atoma, requests
+import requests
 import matplotlib.pyplot as plt
-import pprint
+
+import pandas as pd
+
 import greenbutton as gb
 import io
 
@@ -36,8 +38,16 @@ def main(uri):
     with io.BytesIO(r.content) as ramfile:
         df = gb.dataframe_from_xml(ramfile)
 
+    # Plot last x hours
+    hours = 48
+    latest = df[df['Start Time'] >= (pd.to_datetime("today") - pd.Timedelta(hours=hours))]
+    print(latest)
+    latest.plot(x='Start Time', y='Wh')
+    plt.title('Last ' + str(hours) + ' hours')
+    plt.show()
+
     # Plot daily use
-    df_use_by_day = df.groupby(lambda x: df['Start Time'].loc[x].date()).sum()
+    df_use_by_day = df.groupby(lambda xa: df['Start Time'].loc[xa].date()).sum()
     plt.plot(df_use_by_day.Wh)
     plt.grid()
     plt.ylabel("Wh")
