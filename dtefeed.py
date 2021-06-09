@@ -27,24 +27,35 @@ y = []
 
 @click.command()
 @click.argument('uri')
-def main(uri):
+@click.option('-h', '--hours', default=24, type=int)
+@click.option('-d', '--debug', default=False, is_flag=True)
+def main(uri, hours, debug=False):
     """
     Will plot data from DTE Energy XML feed
     :param uri: URL for sharing from usage.dteenergy.com
+    :param hours: Get data for last x hours
+    :param debug: Debug mode
     """
 
     r = requests.get(uri)
 
     with io.BytesIO(r.content) as ramfile:
         df = gb.dataframe_from_xml(ramfile)
+        #df['Start Time'] = pd.to_datetime(df['Start Time'])
+        #df = df.set_index(pd.DatetimeIndex(df['Start Time']))
+        df['Start Time'] = df['Start Time'].dt.tz_localize('utc').dt.tz_convert('US/Eastern')
+        if debug:
+            print(df.info(verbose=True))
+            #exit()
 
     # Plot last x hours
-    hours = 48
-    latest = df[df['Start Time'] >= (pd.to_datetime("today") - pd.Timedelta(hours=hours))]
+    print('Last', hours, 'records')
+    latest = df[df['Start Time'] >= (pd.Timestamp.now(tz='US/Eastern') - pd.Timedelta(hours=hours))]
     print(latest)
     latest.plot(x='Start Time', y='Wh')
     plt.title('Last ' + str(hours) + ' hours')
     plt.show()
+    exit()
 
     # Plot daily use
     df_use_by_day = df.groupby(lambda xa: df['Start Time'].loc[xa].date()).sum()
