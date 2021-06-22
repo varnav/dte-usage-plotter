@@ -38,12 +38,16 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=365):
     :param uri: URL for sharing from usage.dteenergy.com
     :param hours: Get data for last x hours
     :param days: Get data for last x days
-    :param hdist: Plot hourly distribution
+    :param hdist: Hourly distribution
+    :param night: Night hourly distribution
     :param debug: Debug mode
     """
 
     session = requests.Session()
     r = session.get(uri)
+
+    # Global canvas size in inches: Width, Height
+    plt.rcParams['figure.figsize'] = 15, 6
 
     if debug:
         print('Data received from', uri, 'took', r.elapsed)
@@ -87,7 +91,7 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=365):
     # Plot nightly use (23:00 to 5:00)
     if night:
         df_night_use = gb.filter_by_time_of_day(dfi, datetime.time(23, 0), datetime.time(5, 0))
-        df_night_use_by_day = df_night_use.groupby(lambda x: df_night_use['Start Time'].loc[x].date()).sum()
+        df_night_use_by_day = df_night_use.groupby(lambda xa: df_night_use['Start Time'].loc[xa].date()).sum()
         plt.plot(df_night_use_by_day.Wh)
         # plt.grid()
         plt.ylabel("Wh")
