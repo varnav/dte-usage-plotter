@@ -12,19 +12,17 @@ python dtefeed.py --hours 48 --hdist https://usagedata.dteenergy.com/link/5E7B7F
 """
 
 import datetime
-import click
-import requests
-import requests_cache
-import matplotlib.pyplot as plt
+import io
 
+import click
+import matplotlib.pyplot as plt
 import pandas as pd
+import requests
 
 import greenbutton as gb
-import io
 
 x = []
 y = []
-requests_cache.install_cache('cache')
 
 
 @click.command()
@@ -44,15 +42,16 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=365):
     :param debug: Debug mode
     """
 
-    r = requests.get(uri)
+    session = requests.Session()
+    r = session.get(uri)
 
     if debug:
         print('Data received from', uri, 'took', r.elapsed)
 
     with io.BytesIO(r.content) as ramfile:
         df = gb.dataframe_from_xml(ramfile)
-        dfi = df.set_index(pd.DatetimeIndex(df['Start Time']))  #Indexed version
-        #df['Start Time'] = pd.to_datetime(df['Start Time'])
+        dfi = df.set_index(pd.DatetimeIndex(df['Start Time']))  # Indexed version
+        # df['Start Time'] = pd.to_datetime(df['Start Time'])
         if debug:
             print(df.info(verbose=True))
 
@@ -78,20 +77,19 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=365):
         print('Last', hours, 'records requested but', len(latest.index), 'found')
         print('Data availability for current day may be delayed')
         df_use_by_day = latest.groupby(lambda xa: latest['Start Time'].loc[xa].date()).sum()
-        #plt.plot(df_use_by_day.Wh)
+        # plt.plot(df_use_by_day.Wh)
         plt.bar(df_use_by_day.Wh.index, df_use_by_day.Wh)
-        #plt.grid()
+        # plt.grid()
         plt.ylabel("Wh")
         plt.title("Daily use")
         plt.show()
-
 
     # Plot nightly use (23:00 to 5:00)
     if night:
         df_night_use = gb.filter_by_time_of_day(dfi, datetime.time(23, 0), datetime.time(5, 0))
         df_night_use_by_day = df_night_use.groupby(lambda x: df_night_use['Start Time'].loc[x].date()).sum()
         plt.plot(df_night_use_by_day.Wh)
-        #plt.grid()
+        # plt.grid()
         plt.ylabel("Wh")
         plt.title("23:00 to 5:00 use")
         plt.show()
