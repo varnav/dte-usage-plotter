@@ -19,6 +19,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 
+# from requests_cache import CachedSession
+
 import greenbutton as gb
 
 x = []
@@ -29,21 +31,24 @@ y = []
 @click.argument('uri')
 @click.option('-h', '--hours', type=int)
 @click.option('--days', type=int)
+@click.option('--days_cost', type=int)
 @click.option('--hdist', default=False, is_flag=True)
 @click.option('--night', default=False, is_flag=True)
 @click.option('-d', '--debug', default=False, is_flag=True)
-def main(uri, hours, debug=False, hdist=False, night=False, days=365):
+def main(uri, hours, debug=False, hdist=False, night=False, days=30, days_cost=30):
     """
     Will plot data from DTE Energy XML feed
     :param uri: URL for sharing from usage.dteenergy.com
     :param hours: Get data for last x hours
     :param days: Get data for last x days
+    :param days_cost: Get cost data for last x days
     :param hdist: Hourly distribution
     :param night: Night hourly distribution
     :param debug: Debug mode
     """
 
     session = requests.Session()
+    # session = CachedSession()
     r = session.get(uri)
 
     # Global canvas size in inches: Width, Height
@@ -80,11 +85,31 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=365):
         latest = latest[latest['Start Time'] >= (pd.Timestamp.now(tz='US/Eastern') - pd.Timedelta(hours=hours))]
         print('Last', hours, 'records requested but', len(latest.index), 'found')
         print('Data availability for current day may be delayed')
+        latest['KWh'] = latest['Wh'] / 1000
         df_use_by_day = latest.groupby(lambda xa: latest['Start Time'].loc[xa].date()).sum()
         # plt.plot(df_use_by_day.Wh)
-        plt.bar(df_use_by_day.Wh.index, df_use_by_day.Wh)
+        plt.bar(df_use_by_day.KWh.index, df_use_by_day.KWh)
         # plt.grid()
-        plt.ylabel("Wh")
+        plt.ylabel("KWh")
+        plt.title("Daily use")
+        plt.axhline(y=17, color='r', linestyle='-')
+        plt.show()
+
+    # Plot daily cost
+
+    if days_cost and days_cost > 0:
+        hours = days_cost * 24
+        latest = dfi.copy()
+        latest['Start Time'] = latest['Start Time'].dt.tz_localize('utc').dt.tz_convert('US/Eastern')
+        latest = latest[latest['Start Time'] >= (pd.Timestamp.now(tz='US/Eastern') - pd.Timedelta(hours=hours))]
+        print('Last', hours, 'records requested but', len(latest.index), 'found')
+        print('Data availability for current day may be delayed')
+        latest['Cost'] = latest['Wh'] / 1000 * 0.045
+        df_use_by_day = latest.groupby(lambda xa: latest['Start Time'].loc[xa].date()).sum()
+        print(df_use_by_day)
+        plt.bar(df_use_by_day.Cost.index, df_use_by_day.Cost)
+        # plt.grid()
+        plt.ylabel("USD")
         plt.title("Daily use")
         plt.show()
 
