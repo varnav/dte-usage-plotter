@@ -29,22 +29,16 @@ y = []
 
 @click.command()
 @click.argument('uri')
-@click.option('-h', '--hours', type=int)
-@click.option('--days', type=int)
-@click.option('--days_cost', type=int)
-@click.option('--hdist', default=False, is_flag=True)
-@click.option('--night', default=False, is_flag=True)
-@click.option('-d', '--debug', default=False, is_flag=True)
+@click.option('-h', '--hours', type=int, help="Get data for last x hours")
+@click.option('--days', type=int, help="Get data for last x days")
+@click.option('--days_cost', type=int, help="Get cost data for last x days")
+@click.option('--hdist', default=False, is_flag=True, help="Hourly distribution")
+@click.option('--night', default=False, is_flag=True, help="Night hourly distribution")
+@click.option('-d', '--debug', default=False, is_flag=True, help="Debug mode")
 def main(uri, hours, debug=False, hdist=False, night=False, days=30, days_cost=30):
     """
-    Will plot data from DTE Energy XML feed
-    :param uri: URL for sharing from usage.dteenergy.com
-    :param hours: Get data for last x hours
-    :param days: Get data for last x days
-    :param days_cost: Get cost data for last x days
-    :param hdist: Hourly distribution
-    :param night: Night hourly distribution
-    :param debug: Debug mode
+    Will plot data from DTE Energy XML feed\n
+    URI: URL for sharing from usage.dteenergy.com
     """
 
     session = requests.Session()
