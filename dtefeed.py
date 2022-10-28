@@ -23,6 +23,8 @@ import requests
 
 import greenbutton as gb
 
+plt.switch_backend('TkAgg')
+
 x = []
 y = []
 
@@ -43,13 +45,15 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=30, days_cost=3
 
     session = requests.Session()
     # session = CachedSession()
-    r = session.get(uri)
+    # Faking user agent because otherwise it will disconnect us
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36'}
+    r = session.get(uri, headers=headers)
 
     # Global canvas size in inches: Width, Height
     plt.rcParams['figure.figsize'] = 15, 6
 
     if debug:
-        print('Data received from', uri, 'took', r.elapsed)
+        print('Data received from', uri, 'took', r.elapsed, 'size', len(r.content))
 
     with io.BytesIO(r.content) as ramfile:
         df = gb.dataframe_from_xml(ramfile)
@@ -81,6 +85,7 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=30, days_cost=3
         print('Data availability for current day may be delayed')
         latest['KWh'] = latest['Wh'] / 1000
         df_use_by_day = latest.groupby(lambda xa: latest['Start Time'].loc[xa].date()).sum()
+        print(df_use_by_day)
         # plt.plot(df_use_by_day.Wh)
         plt.bar(df_use_by_day.KWh.index, df_use_by_day.KWh)
         # plt.grid()
@@ -92,13 +97,15 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=30, days_cost=3
     # Plot daily cost
 
     if days_cost and days_cost > 0:
+        cost = 0.045
         hours = days_cost * 24
         latest = dfi.copy()
         latest['Start Time'] = latest['Start Time'].dt.tz_localize('utc').dt.tz_convert('US/Eastern')
         latest = latest[latest['Start Time'] >= (pd.Timestamp.now(tz='US/Eastern') - pd.Timedelta(hours=hours))]
         print('Last', hours, 'records requested but', len(latest.index), 'found')
         print('Data availability for current day may be delayed')
-        latest['Cost'] = latest['Wh'] / 1000 * 0.045
+        print('Cost used is', cost)
+        latest['Cost'] = latest['Wh'] / 1000 * cost
         df_use_by_day = latest.groupby(lambda xa: latest['Start Time'].loc[xa].date()).sum()
         print(df_use_by_day)
         plt.bar(df_use_by_day.Cost.index, df_use_by_day.Cost)
