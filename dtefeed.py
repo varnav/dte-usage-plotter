@@ -13,6 +13,7 @@ python dtefeed.py --hours 48 --hdist https://usagedata.dteenergy.com/link/5E7B7F
 
 import datetime
 import io
+import time
 
 import click
 import matplotlib.pyplot as plt
@@ -47,7 +48,12 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=30, days_cost=3
     # session = CachedSession()
     # Faking user agent because otherwise it will disconnect us
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36'}
-    r = session.get(uri, headers=headers)
+    try:
+        r = session.get(uri, headers=headers)
+    except ConnectionResetError:
+        time.sleep(6)
+        # Try again as connection fails sometimes
+        r = session.get(uri, headers=headers)
 
     # Global canvas size in inches: Width, Height
     plt.rcParams['figure.figsize'] = 15, 6
@@ -83,13 +89,13 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=30, days_cost=3
         latest = latest[latest['Start Time'] >= (pd.Timestamp.now(tz='US/Eastern') - pd.Timedelta(hours=hours))]
         print('Last', hours, 'records requested but', len(latest.index), 'found')
         print('Data availability for current day may be delayed')
-        latest['KWh'] = latest['Wh'] / 1000
+        latest['kWh'] = latest['Wh'] / 1000
         df_use_by_day = latest.groupby(lambda xa: latest['Start Time'].loc[xa].date()).sum()
         print(df_use_by_day)
         # plt.plot(df_use_by_day.Wh)
-        plt.bar(df_use_by_day.KWh.index, df_use_by_day.KWh)
+        plt.bar(df_use_by_day.kWh.index, df_use_by_day.kWh)
         # plt.grid()
-        plt.ylabel("KWh")
+        plt.ylabel("kWh")
         plt.title("Daily use")
         plt.axhline(y=17, color='r', linestyle='-')
         plt.show()
@@ -97,7 +103,7 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=30, days_cost=3
     # Plot daily cost
 
     if days_cost and days_cost > 0:
-        cost = 0.045
+        cost = 0.12  # Hardcoded kWh cost
         hours = days_cost * 24
         latest = dfi.copy()
         latest['Start Time'] = latest['Start Time'].dt.tz_localize('utc').dt.tz_convert('US/Eastern')
