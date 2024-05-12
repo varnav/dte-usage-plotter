@@ -90,7 +90,7 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=30, days_cost=3
         print('Last', hours, 'records requested but', len(latest.index), 'found')
         print('Data availability for current day may be delayed')
         latest['kWh'] = latest['Wh'] / 1000
-        df_use_by_day = latest.groupby(lambda xa: latest['Start Time'].loc[xa].date()).sum()
+        df_use_by_day = latest.groupby(lambda xa: latest['Start Time'].loc[xa].date()).sum(numeric_only=True)
         print(df_use_by_day)
         # plt.plot(df_use_by_day.Wh)
         plt.bar(df_use_by_day.kWh.index, df_use_by_day.kWh)
@@ -112,7 +112,7 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=30, days_cost=3
         print('Data availability for current day may be delayed')
         print('Cost used is', cost)
         latest['Cost'] = latest['Wh'] / 1000 * cost
-        df_use_by_day = latest.groupby(lambda xa: latest['Start Time'].loc[xa].date()).sum()
+        df_use_by_day = latest.groupby(lambda xa: latest['Start Time'].loc[xa].date()).sum(numeric_only=True)
         print(df_use_by_day)
         plt.bar(df_use_by_day.Cost.index, df_use_by_day.Cost)
         # plt.grid()
@@ -123,7 +123,7 @@ def main(uri, hours, debug=False, hdist=False, night=False, days=30, days_cost=3
     # Plot nightly use (23:00 to 5:00)
     if night:
         df_night_use = gb.filter_by_time_of_day(dfi, datetime.time(23, 0), datetime.time(5, 0))
-        df_night_use_by_day = df_night_use.groupby(lambda xa: df_night_use['Start Time'].loc[xa].date()).sum()
+        df_night_use_by_day = df_night_use.groupby(lambda xa: df_night_use['Start Time'].loc[xa].date()).sum(numeric_only=True)
         plt.plot(df_night_use_by_day.Wh)
         # plt.grid()
         plt.ylabel("Wh")
